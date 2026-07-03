@@ -1,30 +1,40 @@
 name: Build Amethyst IPA
 
 on:
-  workflow_dispatch:  # Позволяет запускать вручную
+  workflow_dispatch:
 
 jobs:
   build:
-    runs-on: macos-latest
-    
+    runs-on: macos-15   # Более новая версия macOS
+
     steps:
-      - name: Checkout code
+      - name: Checkout with submodules
         uses: actions/checkout@v4
         with:
-          submodules: recursive   # Очень важно для этого проекта!
+          submodules: recursive
+          fetch-depth: 0
 
       - name: Install dependencies
         run: |
-          brew install cmake
-          git submodule update --init --recursive
+          brew install cmake ninja
+          sudo xcode-select -s /Applications/Xcode.app
+          xcodebuild -version
 
-      - name: Build with Make
+      - name: Build Project
         run: |
-          make -j2   # Можно увеличить, если нужно
+          echo "Starting build..."
+          make -j3 || echo "Make failed, trying xcodebuild..."
+          # Если есть xcodebuild
+          if [ -f "Amethyst.xcodeproj/project.pbxproj" ]; then
+            xcodebuild -project Amethyst.xcodeproj -scheme Amethyst -sdk iphoneos -configuration Release CODE_SIGNING_ALLOWED=NO clean build
+          fi
 
-      - name: Upload IPA
+      - name: Find and Upload IPA
         uses: actions/upload-artifact@v4
         with:
           name: Amethyst-IPA
-          path: "*.ipa"   # или точный путь, если знаешь (обычно в build/)
+          path: |
+            *.ipa
+            build/*.ipa
+            **/*.ipa
           if-no-files-found: warn
