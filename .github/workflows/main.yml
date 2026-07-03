@@ -1,0 +1,30 @@
+name: Build Amethyst IPA
+
+on:
+  workflow_dispatch:  # Позволяет запускать вручную
+
+jobs:
+  build:
+    runs-on: macos-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive   # Очень важно для этого проекта!
+
+      - name: Install dependencies
+        run: |
+          brew install cmake
+          git submodule update --init --recursive
+
+      - name: Build with Make
+        run: |
+          make -j2   # Можно увеличить, если нужно
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: Amethyst-IPA
+          path: "*.ipa"   # или точный путь, если знаешь (обычно в build/)
+          if-no-files-found: warn
